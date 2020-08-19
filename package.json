@@ -1,0 +1,22 @@
+{
+  "name": "@definejs/tree",
+  "version": "0.1.6",
+  "description": "storage data on a tree.",
+  "main": "index.js",
+  "scripts": {},
+  "keywords": [
+    "storage",
+    "tree",
+    "node"
+  ],
+  "author": "micty",
+  "email": "mictydeng@qq.com",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/definejs/tree.git"
+  },
+  "dependencies": {
+    "@definejs/object": "^0.1.0"
+  }
+}

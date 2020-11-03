@@ -162,9 +162,10 @@ class Tree {
 
     
     /**
-    * 对整棵树或指定节点开始的子树中的所有节点进行迭代。
-    * 已重载 each(keys, fn); //对指定的节点开始的子树进行迭代。
+    * 对整棵树或指定节点开始的子树中的所有节点进行迭代执行一个回调函数。
     * 已重载 each(fn); //对整棵树进行迭代。
+    * 已重载 each(keys, fn); //对指定的节点开始的子树进行迭代。
+    * 已重载 each(key0, key1, ..., keyN, fn); //对指定的节点开始的子树进行迭代。
     * @param {Array} keys 节点路径数组。
     * @param {function} fn 迭代时要执行的回调函数。
     * 
@@ -175,13 +176,25 @@ class Tree {
             fn = keys;
             keys = [];
         }
+        //重载 each(key0, key1, ..., keyN, fn); 
+        //对指定的节点开始的子树进行迭代。
+        else if (!Array.isArray(keys)) { 
+            let args = [...arguments];
+            keys = args.slice(0, -1);   //前面 n-1 项都为 key。
+            fn = args.slice(-1)[0];     //参数中的最后一个即为 fn。
+        }
+
+        if (typeof fn != 'function') {
+            throw new Error(`参数 fn 必须为一个函数。`);
+        }
 
         let meta = mapper.get(this);
         let key$node = meta.key$node; //默认是从整棵树的根节点开始。
 
         //指定了要从某个节点开始。
         if (keys.length > 0) {
-            node = getNode(key$node, keys);
+            let node = getNode(key$node, keys);
+
             if (!node) {
                 throw new Error(`不存在路径为 ${keys.join('.')} 的节点。`);
             }

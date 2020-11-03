@@ -8,11 +8,11 @@ function getNode(key$node, keys) {
         let key = keys[index];
         let node = key$node[key];
 
-        if (!node || index == lastIndex) { //不存在了，或是最后一项了
+        if (!node || index == lastIndex) { //不存在了，或是最后一项了。
             return node || null;
         }
 
-        key$node = node.key$node; //准备下一轮迭代
+        key$node = node.key$node; //准备下一轮迭代。
     }
 }
 
@@ -22,15 +22,17 @@ function each(key$node, fn) {
     for (let key in key$node) {
         let node = key$node[key];
         let child = node.key$node;
-        let isLeaf = !child || $Object.isEmpty(child); //是否为叶子结点。
+        let isLeaf = !child || $Object.isEmpty(child); //是否为叶子节点。
 
-        let test = fn(key, node.value, {
+        let value = fn({
+            'key': key,
+            'value': node.value,
             'keys': node.keys,
             'isLeaf': isLeaf,
         });
 
         // 只有在 fn 中明确返回 false 才停止循环。
-        if (test === false) {
+        if (value === false) {
             break;
         }
 
@@ -168,10 +170,12 @@ class Tree {
     * 已重载 each(key0, key1, ..., keyN, fn); //对指定的节点开始的子树进行迭代。
     * @param {Array} keys 节点路径数组。
     * @param {function} fn 迭代时要执行的回调函数。
+    *   在回调函数中明确返回 false 会中止迭代。
     * 
     */
     each(keys, fn) {
-        //重载 each(fn);  对整棵树进行迭代。
+        //重载 each(fn);  
+        //对整棵树进行迭代。
         if (typeof keys == 'function') {
             fn = keys;
             keys = [];
@@ -187,6 +191,7 @@ class Tree {
         if (typeof fn != 'function') {
             throw new Error(`参数 fn 必须为一个函数。`);
         }
+
 
         let meta = mapper.get(this);
         let key$node = meta.key$node; //默认是从整棵树的根节点开始。

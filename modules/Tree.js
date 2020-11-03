@@ -16,6 +16,32 @@ function getNode(key$node, keys) {
     }
 }
 
+
+
+function each(key$node, fn) {
+    for (let key in key$node) {
+        let node = key$node[key];
+        let child = node.key$node;
+        let isLeaf = !child || $Object.isEmpty(child); //是否为叶子结点。
+
+        let test = fn(key, node.value, {
+            'keys': node.keys,
+            'isLeaf': isLeaf,
+        });
+
+        // 只有在 fn 中明确返回 false 才停止循环。
+        if (test === false) {
+            break;
+        }
+
+        if (!isLeaf) {
+            each(child, fn);
+        }
+
+    }
+}
+
+
 /**
 * 树形结构的存储类。
 * 
@@ -28,7 +54,7 @@ class Tree {
     constructor(obj) {
         const meta = {
             'key$node': {},
-            'count': 0,
+            'count': 0,         //整棵树的总节点数。
         };
 
         mapper.set(this, meta);
@@ -56,6 +82,7 @@ class Tree {
     * 设置指定节点上的值。
     * 如果不存在该节点，则先创建，然后存储值到上面；否则直接改写原来的值为指定的值。
     * 已重载 set(key0, key1, ..., keyN, value) 的情况。
+    * 已重载 set([key0, key1, ..., keyN], value) 的情况。
     * @param {Array} keys 节点路径数组。
     * @param value 要设置的值。
     * @example
@@ -79,14 +106,16 @@ class Tree {
         keys.forEach(function (key, index) {
             node = key$node[key];
 
+            //尚未存在该节点，则先创建。
             if (!node) {
                 meta.count++;
 
                 node = key$node[key] = {
-                    'key$node': {},         //子节点的容器对象。
-                    'parent': key$node,     //指向父节点，方便后续处理。
-                    'key': key,             //当前的 key，方便后续处理。
-                    //'value': undefined,     //会有一个这样的字段，但先不创建。
+                    'key$node': {},                     //子节点的容器对象。 如果为空对象，则表示当前节点为叶子节点。
+                    'parent': key$node,                 //指向父节点，方便后续处理。
+                    'key': key,                         //当前的 key，方便后续处理。
+                    'keys': keys.slice(0, index + 1),   //从根节点到当前节点的完整路径，方便后续处理。
+                    //'value': undefined,               //会有一个这样的字段，但先不创建。
                 };
             }
 
@@ -107,7 +136,6 @@ class Tree {
     *   tree.get(['path', 'to']);//
     */
     get(keys) {
-
         //重载 get(key0, key1, ..., keyN) 的情况
         if (!(Array.isArray(keys))) {
             keys = [...arguments];
@@ -118,6 +146,50 @@ class Tree {
         let node = getNode(key$node, keys);
 
         return node ? node.value : undefined;
+    }
+
+    /**
+    * 判断是否存在指定路径的节点。
+    * @param {Array} keys 节点路径数组。
+    */
+    has(keys) {
+        let meta = mapper.get(this);
+        let key$node = meta.key$node;
+        let node = getNode(key$node, keys);
+
+        return !!node;
+    }
+
+    
+    /**
+    * 对整棵树或指定节点开始的子树中的所有节点进行迭代。
+    * 已重载 each(keys, fn); //对指定的节点开始的子树进行迭代。
+    * 已重载 each(fn); //对整棵树进行迭代。
+    * @param {Array} keys 节点路径数组。
+    * @param {function} fn 迭代时要执行的回调函数。
+    * 
+    */
+    each(keys, fn) {
+        //重载 each(fn);  对整棵树进行迭代。
+        if (typeof keys == 'function') {
+            fn = keys;
+            keys = [];
+        }
+
+        let meta = mapper.get(this);
+        let key$node = meta.key$node; //默认是从整棵树的根节点开始。
+
+        //指定了要从某个节点开始。
+        if (keys.length > 0) {
+            node = getNode(key$node, keys);
+            if (!node) {
+                throw new Error(`不存在路径为 ${keys.join('.')} 的节点。`);
+            }
+
+            key$node = node.key$node;
+        }
+
+        each(key$node, fn);
     }
 
     /**
@@ -154,7 +226,7 @@ class Tree {
             delete node.parent[node.key];       //删除整个节点自身，节省内存
         }
         else {
-            delete node.value; //删除值
+            delete node.value; //仅删除值，子节点不受影响。
         }
     }
 

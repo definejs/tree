@@ -1,6 +1,6 @@
 {
   "name": "@definejs/tree",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "storage data on a tree.",
   "main": "index.js",
   "scripts": {},

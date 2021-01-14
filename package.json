@@ -1,6 +1,6 @@
 {
   "name": "@definejs/tree",
-  "version": "0.1.10",
+  "version": "1.0.0",
   "description": "storage data on a tree.",
   "main": "index.js",
   "scripts": {},
@@ -16,7 +16,5 @@
     "type": "git",
     "url": "https://github.com/definejs/tree.git"
   },
-  "dependencies": {
-    "@definejs/object": "^1.0.6"
-  }
+  "dependencies": {}
 }

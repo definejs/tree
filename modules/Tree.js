@@ -1,47 +1,7 @@
-const $Object = require('@definejs/object');
+
+const Node = require('./Tree/Node');
+
 const mapper = new Map();
-
-function getNode(key$node, keys) {
-    let lastIndex = keys.length - 1;
-
-    for (let index = 0; index <= lastIndex; index++) {
-        let key = keys[index];
-        let node = key$node[key];
-
-        if (!node || index == lastIndex) { //不存在了，或是最后一项了。
-            return node || null;
-        }
-
-        key$node = node.key$node; //准备下一轮迭代。
-    }
-}
-
-
-
-function each(key$node, fn) {
-    for (let key in key$node) {
-        let node = key$node[key];
-        let child = node.key$node;
-        let isLeaf = !child || $Object.isEmpty(child); //是否为叶子节点。
-
-        let value = fn({
-            'key': key,
-            'value': node.value,
-            'keys': node.keys,
-            'isLeaf': isLeaf,
-        });
-
-        // 只有在 fn 中明确返回 false 才停止循环。
-        if (value === false) {
-            break;
-        }
-
-        if (!isLeaf) {
-            each(child, fn);
-        }
-
-    }
-}
 
 
 /**
@@ -51,101 +11,102 @@ function each(key$node, fn) {
 class Tree {
     /**
     * 构造器。
-    * @param {Object} obj 要解析的对象。
+    * @param {Array} [list] 可选，要解析的类文件路径列表。
+    * @param {string} [seperator] 可选，类文件路径里的分隔符，如 `/`。
     */
-    constructor(obj) {
+    constructor(list, seperator) {
+        let root = Node.create();
+
         const meta = {
-            'key$node': {},
-            'count': 0,         //整棵树的总节点数。
+            'root': root,
+            'nodes': [],    //整棵树的所有节点列表。
+            'id$node': {},  //
+            'this': this,
         };
 
         mapper.set(this, meta);
 
-        //指定了要从 obj 创建现有的。
-        if (typeof obj == 'object' && obj) {
-            let list = $Object.flat(obj);
+        if (Array.isArray(list)) {
+            seperator = seperator || '/';
 
-            list.forEach((item, index) => { 
-                this.set(item.keys, item.value);
+            list.forEach((item) => {
+                let keys = item.split(seperator);
+                meta.this.set(keys);
             });
         }
 
     }
 
     /**
-    * 从一个对象中解析并创建对应的树实例。
-    * @param {Object} obj 要解析对对象。
+    * 渲染树为文本形式的图形结构。
+    * @param {Array} 
     */
-    static from(obj) { 
-        return new Tree(obj);
+    render(keys = []) {
+        let id$info = {};
+        let lines = [];
+        let TAB = Array(4 + 1).join(` `);
+
+        this.each(keys, function (node) {
+            let { id, x, y, key, siblings, parent, } = node;
+            let hasNextSibling = x < siblings.length - 1;       //
+            let linker = hasNextSibling ? `├──` : `└──`;        //
+            let content = `${linker} ${key}`;                   //如 `├── Main`
+            let tabs = y > 1 ? Array(y).join(TAB) : ``;         //缩进量。 根据当前节点所处的层级决定。
+
+
+            if (parent && !parent.isRoot) {
+                let p = id$info[parent.id];
+                let c = p.hasNextSibling ? `│` : ``;
+
+                tabs = p.tabs + c + TAB.slice(1);
+            }
+
+
+            id$info[id] = {
+                hasNextSibling,
+                tabs,
+                content,
+            };
+
+            lines.push(`${tabs}${content}`);
+
+        });
+
+        return lines;
     }
+
 
     /**
     * 设置指定节点上的值。
     * 如果不存在该节点，则先创建，然后存储值到上面；否则直接改写原来的值为指定的值。
-    * 已重载 set(key0, key1, ..., keyN, value) 的情况。
-    * 已重载 set([key0, key1, ..., keyN], value) 的情况。
     * @param {Array} keys 节点路径数组。
     * @param value 要设置的值。
     * @example
     *   tree.set(['path', 'to'], 123);
-    *   tree.set('path', 'to', 123); //跟上面的等价
     */
     set(keys, value) {
-        //重载 set(key0, key1, ..., keyN, value) 的情况。
-        if (!Array.isArray(keys)) {
-            let args = [...arguments];
-            keys = args.slice(0, -1);
-            value = args.slice(-1)[0];  //参数中的最后一个即为 value
-        }
-
-
         let meta = mapper.get(this);
-        let key$node = meta.key$node;
-        let lastIndex = keys.length - 1;
-        let node = null;
+        let nodes = Node.set(meta.root, keys, value);
 
-        keys.forEach(function (key, index) {
-            node = key$node[key];
+        nodes.forEach((node) => {
+            let { id, } = node;
 
-            //尚未存在该节点，则先创建。
-            if (!node) {
-                meta.count++;
-
-                node = key$node[key] = {
-                    'key$node': {},                     //子节点的容器对象。 如果为空对象，则表示当前节点为叶子节点。
-                    'parent': key$node,                 //指向父节点，方便后续处理。
-                    'key': key,                         //当前的 key，方便后续处理。
-                    'keys': keys.slice(0, index + 1),   //从根节点到当前节点的完整路径，方便后续处理。
-                    //'value': undefined,               //会有一个这样的字段，但先不创建。
-                };
-            }
-
-            if (index < lastIndex) {
-                key$node = node.key$node; //准备下一轮迭代
-            }
-            else { //最后一项
-                node.value = value;
-            }
+            meta.id$node[id] = node;
+            meta.nodes.push(node);
         });
+
+
     }
 
     /**
     * 获取指定路径的节点上的值。
     * @return 返回该节点上的值。 如果不存在该节点，则返回 undefined。
     * @example
-    *   tree.get('path', 'to'); //获取路径为 'path' -> 'to' 的节点上存储的值。
-    *   tree.get(['path', 'to']);//
+    *   tree.get(['path', 'to']); //获取路径为 'path' -> 'to' 的节点上存储的值。
     */
     get(keys) {
-        //重载 get(key0, key1, ..., keyN) 的情况
-        if (!(Array.isArray(keys))) {
-            keys = [...arguments];
-        }
-
         let meta = mapper.get(this);
-        let key$node = meta.key$node;
-        let node = getNode(key$node, keys);
+        let node = Node.get(meta.root, keys);
 
         return node ? node.value : undefined;
     }
@@ -156,18 +117,16 @@ class Tree {
     */
     has(keys) {
         let meta = mapper.get(this);
-        let key$node = meta.key$node;
-        let node = getNode(key$node, keys);
+        let node = Node.get(meta.root, keys);
 
         return !!node;
     }
 
-    
+
     /**
     * 对整棵树或指定节点开始的子树中的所有节点进行迭代执行一个回调函数。
     * 已重载 each(fn); //对整棵树进行迭代。
     * 已重载 each(keys, fn); //对指定的节点开始的子树进行迭代。
-    * 已重载 each(key0, key1, ..., keyN, fn); //对指定的节点开始的子树进行迭代。
     * @param {Array} keys 节点路径数组。
     * @param {function} fn 迭代时要执行的回调函数。
     *   在回调函数中明确返回 false 会中止迭代。
@@ -180,13 +139,7 @@ class Tree {
             fn = keys;
             keys = [];
         }
-        //重载 each(key0, key1, ..., keyN, fn); 
-        //对指定的节点开始的子树进行迭代。
-        else if (!Array.isArray(keys)) { 
-            let args = [...arguments];
-            keys = args.slice(0, -1);   //前面 n-1 项都为 key。
-            fn = args.slice(-1)[0];     //参数中的最后一个即为 fn。
-        }
+       
 
         if (typeof fn != 'function') {
             throw new Error(`参数 fn 必须为一个函数。`);
@@ -194,20 +147,14 @@ class Tree {
 
 
         let meta = mapper.get(this);
-        let key$node = meta.key$node; //默认是从整棵树的根节点开始。
+        let root = meta.root;
+        let node = keys.length > 0 ? Node.get(root, keys) : root;
 
-        //指定了要从某个节点开始。
-        if (keys.length > 0) {
-            let node = getNode(key$node, keys);
-
-            if (!node) {
-                throw new Error(`不存在路径为 ${keys.join('.')} 的节点。`);
-            }
-
-            key$node = node.key$node;
+        if (!node) {
+            throw new Error(`不存在路径为 ${keys.join('.')} 的节点。`);
         }
 
-        each(key$node, fn);
+        Node.each(node, fn);
     }
 
     /**
@@ -215,37 +162,24 @@ class Tree {
     */
     clear() {
         let meta = mapper.get(this);
-        meta.key$node = {};
-        meta.count = 0;
+
+        meta.root = Node.create([], null);
+        meta.nodes = [];
+        meta.id$node = {};
     }
 
     /**
     * 删除指定节点上的值。
     */
     remove(keys) {
-        //重载 remove(key0, key1, ..., keyN) 的情况
-        if (!(Array.isArray(keys))) {
-            keys = [].slice.call(arguments);
-        }
-
         let meta = mapper.get(this);
-        let key$node = meta.key$node;
-        let node = getNode(key$node, keys);
+        let node = Node.get(meta.root, keys);
 
         if (!node) { //不存在该节点
             return;
         }
 
-
-        let obj = node.key$node;                //子节点
-
-        if (!obj || $Object.isEmpty(obj)) {    //不存在子节点
-            meta.count--;
-            delete node.parent[node.key];       //删除整个节点自身，节省内存
-        }
-        else {
-            delete node.value; //仅删除值，子节点不受影响。
-        }
+        delete node.value; //仅删除值，子节点不受影响。
     }
 
     /**

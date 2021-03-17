@@ -41,7 +41,16 @@ class Tree {
     * 渲染树为文本形式的图形结构。
     * @param {Array} 
     */
-    render(keys = []) {
+    render(keys, fn) {
+
+        //重载 render(fn);
+        if (typeof keys == 'function') {
+            fn = keys;
+            keys = null;
+        }
+
+        keys = keys || [];
+
         let id$info = {};
         let lines = [];
         let TAB = Array(4 + 1).join(` `);
@@ -62,13 +71,27 @@ class Tree {
             }
 
 
-            id$info[id] = {
+            let info = id$info[id] = {
                 hasNextSibling,
                 tabs,
                 content,
             };
 
-            lines.push(`${tabs}${content}`);
+            let value = `${tabs}${content}`;
+
+            if (fn) {
+                value = fn(node, {
+                    ...info,
+                    linker,
+                });
+
+                //回调函数中明确返回了 false，则表示要中止迭代。
+                if (value === false) {
+                    return false;
+                }
+            }
+
+            lines.push(value);
 
         });
 

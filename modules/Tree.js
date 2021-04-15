@@ -65,7 +65,7 @@ class Tree {
 
             if (parent && !parent.isRoot) {
                 let p = id$info[parent.id];
-                let c = p.hasNextSibling ? `│` : ``;
+                let c = p.hasNextSibling ? `│` : ` `;
 
                 tabs = p.tabs + c + TAB.slice(1);
             }

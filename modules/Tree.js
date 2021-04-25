@@ -2,7 +2,7 @@
 const Node = require('./Tree/Node');
 
 const mapper = new Map();
-
+let idCounter = 0;
 
 /**
 * 树形结构的存储类。
@@ -14,10 +14,20 @@ class Tree {
     * @param {Array} [list] 可选，要解析的类文件路径列表。
     * @param {string} [seperator] 可选，类文件路径里的分隔符，如 `/`。
     */
-    constructor(list, seperator) {
+    constructor(list, seperator, config) {
+        //历史原因，重载 Tree(list, config);
+        if (typeof seperator == 'object') {
+            config = seperator;
+            seperator = undefined;
+        }
+
+        config = Object.assign({}, exports.defaults, config);
+
+        let id = `${config.idPrefix}-${idCounter++}`;
         let root = Node.create();
 
-        const meta = {
+        let meta = {
+            'id': id,
             'root': root,
             'nodes': [],    //整棵树的所有节点列表。
             'id$node': {},  //
@@ -26,8 +36,12 @@ class Tree {
 
         mapper.set(this, meta);
 
+        Object.assign(this, {
+            'id': meta.id,
+        });
+
         if (Array.isArray(list)) {
-            seperator = seperator || '/';
+            seperator = seperator || config.seperator;
 
             list.forEach((item) => {
                 let keys = item.split(seperator);
@@ -37,6 +51,12 @@ class Tree {
 
     }
 
+    // /**
+    // * 当前实例的 id。
+    // */
+    // id = ''
+
+    
     /**
     * 渲染树为文本形式的图形结构。
     * @param {Array} 
@@ -213,4 +233,5 @@ class Tree {
     }
 }
 
-module.exports = Tree;
+Tree.defaults = require('./Tree.defaults');
+module.exports = exports = Tree;

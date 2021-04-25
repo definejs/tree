@@ -14,16 +14,8 @@ class Tree {
     * @param {Array} [list] 可选，要解析的类文件路径列表。
     * @param {string} [seperator] 可选，类文件路径里的分隔符，如 `/`。
     */
-    constructor(list, seperator, config) {
-        //历史原因，重载 Tree(list, config);
-        if (typeof seperator == 'object') {
-            config = seperator;
-            seperator = undefined;
-        }
-
-        config = Object.assign({}, exports.defaults, config);
-
-        let id = `${config.idPrefix}-${idCounter++}`;
+    constructor(list, seperator) {
+        let id = `definejs-Tree-${idCounter++}`;
         let root = Node.create();
 
         let meta = {
@@ -233,5 +225,4 @@ class Tree {
     }
 }
 
-Tree.defaults = require('./Tree.defaults');
-module.exports = exports = Tree;
+module.exports = Tree;

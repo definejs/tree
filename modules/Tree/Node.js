@@ -1,19 +1,16 @@
 
 
-let counter = 0;
-
+let idCounter = 0;
 
 module.exports = exports = {
 
     create(keys = [], parent = null) { 
-        
         let key = keys.slice(-1)[0];
-        let id = `node-${counter++}`;
+        let id = `node-${idCounter++}`;
         let depth = keys.length;
         let siblings = parent ? parent.nodes : [];
 
-
-        return {
+        let node = {
             'id': id,                   //全局 id。
             'y': depth,                 //当前层级的深度。
             'x': 0,                     //在兄弟节点列表中的索引号（排名）。
@@ -26,6 +23,8 @@ module.exports = exports = {
             'siblings': siblings,       //兄弟节点列表。 包括自己在内。
             //'value': undefined,       //会有一个这样的字段，但先不创建。
         };
+
+        return node;
     },
 
     set(node, keys, value) { 
@@ -79,6 +78,7 @@ module.exports = exports = {
         }
     },
 
+    //迭代指定节点下的所有子节点。
     each(node, fn) {
         let { nodes, } = node;
 
@@ -88,8 +88,8 @@ module.exports = exports = {
         }
 
 
-        nodes.some((node) => { 
-            let value = fn(node);
+        nodes.some((node, index) => { 
+            let value = fn(node, index);
 
             // 只有在 fn 中明确返回 false 才停止循环。
             if (value === false) {

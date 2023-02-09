@@ -21,8 +21,6 @@ class Tree {
         let meta = {
             'id': id,
             'root': root,
-            'nodes': [],    //整棵树的所有节点列表。
-            'id$node': {},  //
             'this': this,
         };
 
@@ -33,7 +31,7 @@ class Tree {
         });
 
         if (Array.isArray(list)) {
-            seperator = seperator || config.seperator;
+            seperator = seperator || '/';
 
             list.forEach((item) => {
                 let keys = item.split(seperator);
@@ -48,13 +46,12 @@ class Tree {
     // */
     // id = ''
 
-    
+
     /**
     * 渲染树为文本形式的图形结构。
     * @param {Array} 
     */
     render(keys, fn) {
-
         //重载 render(fn);
         if (typeof keys == 'function') {
             fn = keys;
@@ -77,9 +74,10 @@ class Tree {
 
             if (parent && !parent.isRoot) {
                 let p = id$info[parent.id];
-                let c = p.hasNextSibling ? `│` : ` `;
-
-                tabs = p.tabs + c + TAB.slice(1);
+                if (p) {
+                    let c = p.hasNextSibling ? `│` : ` `;
+                    tabs = p.tabs + c + TAB.slice(1);
+                }
             }
 
 
@@ -121,15 +119,7 @@ class Tree {
     */
     set(keys, value) {
         let meta = mapper.get(this);
-        let nodes = Node.set(meta.root, keys, value);
-
-        nodes.forEach((node) => {
-            let { id, } = node;
-
-            meta.id$node[id] = node;
-            meta.nodes.push(node);
-        });
-
+        Node.set(meta.root, keys, value);
 
     }
 
@@ -174,7 +164,7 @@ class Tree {
             fn = keys;
             keys = [];
         }
-       
+
 
         if (typeof fn != 'function') {
             throw new Error(`参数 fn 必须为一个函数。`);
@@ -199,8 +189,6 @@ class Tree {
         let meta = mapper.get(this);
 
         meta.root = Node.create([], null);
-        meta.nodes = [];
-        meta.id$node = {};
     }
 
     /**
@@ -223,6 +211,8 @@ class Tree {
     destroy() {
         mapper.delete(this);
     }
+
+    
 }
 
 module.exports = Tree;
